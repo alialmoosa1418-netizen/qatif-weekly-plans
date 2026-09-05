@@ -125,22 +125,36 @@ async function parentPrint(){
   const st=document.createElement('style');st.textContent=`
    .pdfRoot{box-sizing:border-box}.pdfPage{width:1180px;height:786px;padding:12px 16px;box-sizing:border-box;background:#fff;overflow:hidden}
    .pdfHead{height:66px;display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:7px}.pdfHead img{width:72px;height:54px;object-fit:contain}.pdfTitle{line-height:1.18}.pdfTitle h1{margin:0;font-size:24px}.pdfTitle div,.pdfMeta{font-size:13px}.pdfMeta{font-weight:700;margin-right:22px}
-   .pdfPage table{width:100%;height:690px;border-collapse:collapse;table-layout:fixed}.pdfPage th,.pdfPage td{border:1px solid #9fc6cb;padding:7px 8px;vertical-align:top;text-align:right;box-sizing:border-box}.pdfPage th{text-align:center;font-size:15px;background:#178b98;color:#fff;font-weight:700;height:36px;vertical-align:middle}.pdfPage th:first-child{background:#0f6f7b;width:5.5%}.pdfPage th:not(:first-child){width:18.9%}.pdfPage td:nth-child(2),.pdfPage td:nth-child(4),.pdfPage td:nth-child(6){background:#eef9fa}.pdfPage td:first-child{background:#d9f0f2;font-weight:700;text-align:center;vertical-align:middle}.pdfPage .subject{font-size:17px;font-weight:700;margin-bottom:4px;color:#087985}.pdfPage .small{font-size:12.5px;line-height:1.35;color:#40545b}.pdfPage td{font-size:12.5px;line-height:1.35;overflow-wrap:anywhere}
+   .pdfPage table{width:100%;border-collapse:collapse;table-layout:fixed}.pdfPage th,.pdfPage td{border:1px solid #9fc6cb;padding:7px 8px;vertical-align:top;text-align:right;box-sizing:border-box}.pdfPage th{text-align:center;font-size:15px;background:#178b98;color:#fff;font-weight:700;height:36px;vertical-align:middle}.pdfPage th:first-child{background:#0f6f7b;width:5.5%}.pdfPage th:not(:first-child){width:18.9%}.pdfPage td:nth-child(2),.pdfPage td:nth-child(4),.pdfPage td:nth-child(6){background:#eef9fa}.pdfPage td:first-child{background:#d9f0f2;font-weight:700;text-align:center;vertical-align:middle}.pdfPage .subject{font-size:17px;font-weight:700;margin-bottom:4px;color:#087985}.pdfPage .small{font-size:12.5px;line-height:1.35;color:#40545b}.pdfPage td{font-size:12.5px;line-height:1.35;overflow-wrap:anywhere}
    .pdfPage.compact .subject{font-size:16px}.pdfPage.compact .small,.pdfPage.compact td{font-size:11.5px;line-height:1.28}.pdfPage.compact th,.pdfPage.compact td{padding:5px 7px}
   `;wrap.appendChild(st);
-  // Seven or fewer periods should stay together on one A4 page. CSS table height distributes rows evenly.
-  let pages=[];
-  if(body.length<=7){pages=[body]}
-  else{
-   // For unusually long schedules, split only between complete period rows and avoid orphan pages.
-   const per=6;for(let i=0;i<body.length;i+=per)pages.push(body.slice(i,i+per));
-   if(pages.length>1&&pages.at(-1).length===1){pages.at(-2).push(pages.at(-1)[0]);pages.pop()}
-  }
+  // Build pages by measuring the real content of each period row. Rich rows receive more height,
+  // short/empty rows receive less. Split only between complete rows when one A4 page cannot hold them.
+  const PAGE_TABLE_H=690, MIN_ROW_H=58, HEADER_H=36;
+  const measureRows=async(rowsHtml)=>{
+   const probe=document.createElement('div');
+   probe.innerHTML=makePage(rowsHtml,true);wrap.appendChild(probe);
+   const page=probe.firstElementChild,table=page.querySelector('table');
+   table.style.height='auto';
+   [...table.rows].forEach(r=>r.style.height='auto');
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+   const hs=[...table.rows].slice(1).map(r=>Math.max(MIN_ROW_H,Math.ceil(r.getBoundingClientRect().height)+6));
+   probe.remove();return hs;
+  };
+  const heights=await measureRows(body),pages=[];let cur=[],used=HEADER_H;
+  body.forEach((row,i)=>{let h=heights[i];if(cur.length&&used+h>PAGE_TABLE_H){pages.push(cur);cur=[];used=HEADER_H}cur.push({html:row,h});used+=h});
+  if(cur.length)pages.push(cur);
+  // Avoid a single orphan period on the last page when moving one complete row is possible.
+  if(pages.length>1&&pages.at(-1).length===1&&pages.at(-2).length>2)pages.at(-1).unshift(pages.at(-2).pop());
   const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
   for(let i=0;i<pages.length;i++){
-   const holder=document.createElement('div');holder.innerHTML=makePage(pages[i],body.length>=7);wrap.appendChild(holder);
+   const pageItems=pages[i],holder=document.createElement('div');holder.innerHTML=makePage(pageItems.map(x=>x.html),body.length>=7);wrap.appendChild(holder);
    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-   const pageEl=holder.firstElementChild;
+   const pageEl=holder.firstElementChild,table=pageEl.querySelector('table'),trs=[...table.rows].slice(1);
+   const available=PAGE_TABLE_H-HEADER_H,base=pageItems.reduce((a,x)=>a+x.h,0),extra=Math.max(0,available-base);
+   // Distribute spare space proportionally, while preserving extra room for content-heavy rows.
+   trs.forEach((tr,j)=>{const share=base?extra*(pageItems[j].h/base):0;tr.style.height=Math.floor(pageItems[j].h+share)+'px'});
+   table.style.height=PAGE_TABLE_H+'px';
    const canvas=await html2canvas(pageEl,{scale:1.65,useCORS:true,backgroundColor:'#ffffff',width:1180,height:786,windowWidth:1180});
    if(i)pdf.addPage('a4','landscape');
    pdf.addImage(canvas.toDataURL('image/jpeg',0.94),'JPEG',0,0,297,210);
