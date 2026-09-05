@@ -112,44 +112,46 @@ async function parentPrint(){
  let wrap;
  try{
   const grade=pg.options[pg.selectedIndex]?.text||'',cls=pc.options[pc.selectedIndex]?.text||'',week=pw.options[pw.selectedIndex]?.text||'';
-  const table=document.querySelector('#parentPlan .desktopWeek')?.innerHTML;
-  if(!table)throw new Error('لم يتم تحميل الجدول بعد');
-  wrap=document.createElement('div');
-  wrap.dir='rtl';
-  wrap.style.cssText='position:fixed;left:-12000px;top:0;width:1180px;background:#fff;color:#17323d;padding:6px 12px;font-family:Arial,Tahoma,sans-serif;box-sizing:border-box';
-  wrap.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:0 0 4px;min-height:44px"><img src="school-logo.png" style="width:68px;height:48px;object-fit:contain"><div style="text-align:right;line-height:1.15"><h1 style="margin:0;font-size:23px">الخطة الأسبوعية</h1><div style="font-size:13px;margin-top:2px">مدارس القطيف الأهلية - المرحلة المتوسطة</div></div><div style="font-size:13px;font-weight:bold;margin-right:20px">${esc(grade)} &nbsp; | &nbsp; ${esc(cls)} &nbsp; | &nbsp; ${esc(week)}</div></div><div class="pdfTable">${table}</div>`;
+  const source=document.querySelector('#parentPlan .desktopWeek table');
+  if(!source)throw new Error('لم يتم تحميل الجدول بعد');
+  const rows=[...source.querySelectorAll('tr')];
+  if(rows.length<2)throw new Error('الجدول فارغ');
+  const header=rows[0].outerHTML,body=rows.slice(1).map(r=>r.outerHTML);
+  const headerHtml=`<div class="pdfHead"><img src="school-logo.png"><div class="pdfTitle"><h1>الخطة الأسبوعية</h1><div>مدارس القطيف الأهلية - المرحلة المتوسطة</div></div><div class="pdfMeta">${esc(grade)} &nbsp; | &nbsp; ${esc(cls)} &nbsp; | &nbsp; ${esc(week)}</div></div>`;
+  const makePage=(pageRows,compact=false)=>`<div class="pdfPage ${compact?'compact':''}">${headerHtml}<table>${header}${pageRows.join('')}</table></div>`;
+  wrap=document.createElement('div');wrap.dir='rtl';wrap.className='pdfRoot';
+  wrap.style.cssText='position:fixed;left:-14000px;top:0;width:1180px;background:#fff;color:#17323d;font-family:Arial,Tahoma,sans-serif';
   document.body.appendChild(wrap);
-  const st=document.createElement('style');st.textContent='.pdfTable table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:16px}.pdfTable th,.pdfTable td{border:1px solid #9fc6cb;padding:11px 9px;vertical-align:top;text-align:right}.pdfTable th{text-align:center;font-size:16px;background:#178b98;color:#fff;font-weight:700;height:34px;vertical-align:middle}.pdfTable th:nth-child(1){background:#0f6f7b}.pdfTable td:nth-child(2),.pdfTable td:nth-child(4),.pdfTable td:nth-child(6){background:#eef9fa}.pdfTable td:nth-child(1){background:#d9f0f2;font-weight:700;text-align:center;vertical-align:middle}.pdfTable .subject{font-size:18px;font-weight:bold;margin-bottom:5px;color:#087985}.pdfTable .small{font-size:14px;line-height:1.5;color:#40545b}.pdfTable tr:not(:first-child){height:92px}.pdfTable td{overflow-wrap:anywhere}';wrap.appendChild(st);
-  await new Promise(r=>setTimeout(r,150));
-  await new Promise(r=>requestAnimationFrame(r));
-  const canvas=await html2canvas(wrap,{scale:1.6,useCORS:true,backgroundColor:'#ffffff'});
-  const {jsPDF}=window.jspdf;
-  const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
-  const pwmm=297,phmm=210,margin=7,maxW=pwmm-margin*2,maxH=phmm-margin*2;
-  const pagePx=Math.floor(canvas.width*(maxH/maxW));
-  let y=0,page=0;
-  while(y<canvas.height){
-    const h=Math.min(pagePx,canvas.height-y),slice=document.createElement('canvas');
-    slice.width=canvas.width;slice.height=h;
-    const ctx=slice.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,slice.width,slice.height);
-    ctx.drawImage(canvas,0,y,canvas.width,h,0,0,canvas.width,h);
-    if(page>0)pdf.addPage('a4','landscape');
-    const ih=h*maxW/canvas.width;
-    pdf.addImage(slice.toDataURL('image/jpeg',0.93),'JPEG',margin,margin,maxW,ih);
-    y+=h;page++;
+  const st=document.createElement('style');st.textContent=`
+   .pdfRoot{box-sizing:border-box}.pdfPage{width:1180px;height:786px;padding:12px 16px;box-sizing:border-box;background:#fff;overflow:hidden}
+   .pdfHead{height:66px;display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:7px}.pdfHead img{width:72px;height:54px;object-fit:contain}.pdfTitle{line-height:1.18}.pdfTitle h1{margin:0;font-size:24px}.pdfTitle div,.pdfMeta{font-size:13px}.pdfMeta{font-weight:700;margin-right:22px}
+   .pdfPage table{width:100%;height:690px;border-collapse:collapse;table-layout:fixed}.pdfPage th,.pdfPage td{border:1px solid #9fc6cb;padding:7px 8px;vertical-align:top;text-align:right;box-sizing:border-box}.pdfPage th{text-align:center;font-size:15px;background:#178b98;color:#fff;font-weight:700;height:36px;vertical-align:middle}.pdfPage th:first-child{background:#0f6f7b;width:5.5%}.pdfPage th:not(:first-child){width:18.9%}.pdfPage td:nth-child(2),.pdfPage td:nth-child(4),.pdfPage td:nth-child(6){background:#eef9fa}.pdfPage td:first-child{background:#d9f0f2;font-weight:700;text-align:center;vertical-align:middle}.pdfPage .subject{font-size:17px;font-weight:700;margin-bottom:4px;color:#087985}.pdfPage .small{font-size:12.5px;line-height:1.35;color:#40545b}.pdfPage td{font-size:12.5px;line-height:1.35;overflow-wrap:anywhere}
+   .pdfPage.compact .subject{font-size:16px}.pdfPage.compact .small,.pdfPage.compact td{font-size:11.5px;line-height:1.28}.pdfPage.compact th,.pdfPage.compact td{padding:5px 7px}
+  `;wrap.appendChild(st);
+  // Seven or fewer periods should stay together on one A4 page. CSS table height distributes rows evenly.
+  let pages=[];
+  if(body.length<=7){pages=[body]}
+  else{
+   // For unusually long schedules, split only between complete period rows and avoid orphan pages.
+   const per=6;for(let i=0;i<body.length;i+=per)pages.push(body.slice(i,i+per));
+   if(pages.length>1&&pages.at(-1).length===1){pages.at(-2).push(pages.at(-1)[0]);pages.pop()}
+  }
+  const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  for(let i=0;i<pages.length;i++){
+   const holder=document.createElement('div');holder.innerHTML=makePage(pages[i],body.length>=7);wrap.appendChild(holder);
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+   const pageEl=holder.firstElementChild;
+   const canvas=await html2canvas(pageEl,{scale:1.65,useCORS:true,backgroundColor:'#ffffff',width:1180,height:786,windowWidth:1180});
+   if(i)pdf.addPage('a4','landscape');
+   pdf.addImage(canvas.toDataURL('image/jpeg',0.94),'JPEG',0,0,297,210);
+   holder.remove();
   }
   const safe=(cls+'-'+week).replace(/[\\/:*?"<>|]/g,'-');
   const blob=pdf.output('blob'),file=new File([blob],`الخطة-الأسبوعية-${safe}.pdf`,{type:'application/pdf'});
-  if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
-    await navigator.share({files:[file],title:'الخطة الأسبوعية'});
-  }else{
-    const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
-  }
- }catch(e){
-  if(e?.name!=='AbortError')alert('تعذر إنشاء ملف PDF: '+(e?.message||e));
- }finally{
-  if(wrap)wrap.remove();btn.disabled=false;btn.textContent=old;
- }
+  if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]}))await navigator.share({files:[file],title:'الخطة الأسبوعية'});
+  else{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
+ }catch(e){if(e?.name!=='AbortError')alert('تعذر إنشاء ملف PDF: '+(e?.message||e))}
+ finally{if(wrap)wrap.remove();btn.disabled=false;btn.textContent=old}
 }
 async function loadParent(){if(!pc.value||!pw.value)return;let x=await get(`plans&class_id=${pc.value}&week_id=${pw.value}`),m={};(x.plans||[]).forEach(p=>{const d=p.day_of_week??p.day?.day_of_week??p.schedule_entry?.day_of_week;const n=p.period_number??p.day?.period_number??p.schedule_entry?.period_number;if(d&&n)m[d+'-'+n]=p});let max=Math.max(...boot.days.map(d=>d.period_count),6),desk='<div class="desktopWeek"><table class=week><tr><th>الحصة</th>'+days.map(d=>'<th>'+d+'</th>').join('')+'</tr>';for(let n=1;n<=max;n++){desk+=`<tr><th>${n}</th>`+days.map((d,i)=>cell(m[(i+1)+'-'+n])).join('')+'</tr>'}desk+='</table></div>';let mob='<div class=mobileDays>'+days.map((d,i)=>`<div class="card day"><h3>${d}</h3>`+Array.from({length:boot.days[i]?.period_count||6},(_,n)=>`<div class=period><b>الحصة ${n+1}</b>${cellBody(m[(i+1)+'-'+(n+1)])}</div>`).join('')+'</div>').join('')+'</div>';parentPlan.innerHTML=desk+mob}
 function cell(p){return '<td>'+cellBody(p)+'</td>'}function cellBody(p){if(!p)return '';let s=`<div class=subject>${esc(p.subject?.name||'')}</div>`;if(p.lesson_topic)s+=`<div><b>عنوان الدرس:</b> ${esc(p.lesson_topic)}</div>`;if(p.homework)s+=`<div class=small><b>الواجب / المطلوب:</b> ${esc(p.homework)}</div>`;if(p.notes)s+=`<div class=small><b>الملاحظات:</b> ${esc(p.notes)}</div>`;return s}
