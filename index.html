@@ -26,7 +26,7 @@
 </style></head><body><header><img src="school-logo.png" alt="شعار مدارس القطيف الأهلية" style="width:92px;max-height:92px;object-fit:contain;margin:auto;display:block"><h1>الخطط الأسبوعية</h1><div>مدارس القطيف الأهلية – المرحلة المتوسطة</div><nav><button class="active" onclick="page('parent',this)">ولي الأمر</button><button onclick="page('teacher',this)">المعلم</button><button onclick="page('admin',this)">الإدارة</button></nav></header><main>
 <section id="parent"><div class="card"><h2>عرض الخطة الأسبوعية</h2><div class="grid"><div><label>الصف</label><select id="pg"></select></div><div><label>الفصل</label><select id="pc"></select></div><div><label>الأسبوع</label><select id="pw"></select></div></div><div style="margin-top:12px"><button class="pdfBtn" onclick="parentPrint()">حفظ الخطة PDF / طباعة</button></div><div id="parentPlan"></div></div></section>
 <section id="teacher" class="hide"><div id="tlogin" class="card"><h2>دخول المعلم</h2><div class="grid"><div><label>اسم المعلم</label><select id="tn"></select></div><div><label>رمز الدخول</label><input id="tp" inputmode="numeric" maxlength="4" type="password" placeholder="4 أرقام"></div></div><p class="small">عند الدخول لأول مرة استخدم 0000، ثم عيّن رمزك الخاص.</p><button onclick="tLogin()">دخول</button><p id="tm"></p></div><div id="tchange" class="card hide"><h2>تعيين رمز جديد</h2><input id="newpin" inputmode="numeric" maxlength="4" type="password" placeholder="رمز جديد من 4 أرقام"><button onclick="changePin()">حفظ الرمز</button></div><div id="tapp" class="hide"><div class="card"><h2 id="hello"></h2><label>الأسبوع</label><select id="tw"></select></div><div id="schedule"></div><button onclick="savePlans()">حفظ الخطة الأسبوعية</button><span id="saveStatus" class="small" style="margin-right:10px"></span></div></section>
-<section id="admin" class="hide"><div id="alogin" class="card"><h2>دخول الإدارة</h2><div class="small" style="margin-bottom:10px">نسخة الدخول: 2026.09.05-2</div><div class="grid"><input id="ae" type="email" placeholder="البريد الإلكتروني"><input id="ap" type="password" placeholder="كلمة المرور"></div><button id="adminLoginBtn" type="button">دخول</button><p id="am" aria-live="polite"></p></div><div id="aapp" class="hide"><div class="card"><h2>لوحة الإدارة</h2><div id="astats" class="stats"></div></div><div class="card"><h2>إدارة الجدول الدراسي</h2>
+<section id="admin" class="hide"><div id="alogin" class="card"><h2>دخول الإدارة</h2><div class="small" style="margin-bottom:10px">الإصدار 2026</div><div class="grid"><input id="ae" type="email" placeholder="البريد الإلكتروني"><input id="ap" type="password" placeholder="كلمة المرور"></div><button id="adminLoginBtn" type="button">دخول</button><p id="am" aria-live="polite"></p></div><div id="aapp" class="hide"><div class="card"><h2>لوحة الإدارة</h2><div id="astats" class="stats"></div></div><div class="card"><h2>إدارة الجدول الدراسي</h2>
     <p class="small">كل تعديل جوهري على الجدول يُحفظ كإصدار مستقل، ولا يتم حذف الجداول السابقة.</p>
     <div id="scheduleVersions"></div>
     <div class="teacherItem">
@@ -77,7 +77,7 @@
 </div><textarea id="editTeacherNotes" placeholder="ملاحظات إدارية"></textarea>
 <label><input id="editTeacherActive" type="checkbox" checked> المعلم نشط</label><br>
 <button onclick="saveTeacherEdit()">حفظ بيانات المعلم</button> <button class="secondary" onclick="teacherEditor.classList.add('hide')">إلغاء</button></div>
-<button onclick="aLogout()">تسجيل الخروج</button></div></section></main><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<button onclick="aLogout()">تسجيل الخروج</button></div></section></main><footer style="text-align:center;padding:14px 10px 22px;color:#65757c;font-size:13px">مدارس القطيف الأهلية – المرحلة المتوسطة · الإصدار 2026</footer><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script><script>
 const API='https://mbnvdwiqdqyclmubiqof.supabase.co/functions/v1/weekly-plans';const sb=supabase.createClient('https://mbnvdwiqdqyclmubiqof.supabase.co','sb_publishable_P9PHSRiPaCyeHbQjW0IM8w_UfDPQ_B1');let boot,token='',entries=[],weeks=[],classes=[];const days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
@@ -228,5 +228,5 @@ function bindAdminLogin(){
 }
 
 document.addEventListener('DOMContentLoaded',bindAdminLogin);
-sb.auth.getSession().then(x=>{if(x.data.session)loadAdmin()});init();</script><!-- QATIF-WEEKLY-PLANS release-candidate v9 -->
+sb.auth.getSession().then(x=>{if(x.data.session)loadAdmin()});init();</script><!-- QATIF-WEEKLY-PLANS · Production Release 2026 · PDF engine v12 · Edge API v11 -->
 </body></html>
